@@ -7,6 +7,7 @@ from exp.exp_short_term_forecasting import Exp_Short_Term_Forecast
 from exp.exp_anomaly_detection import Exp_Anomaly_Detection
 from exp.exp_classification import Exp_Classification
 from exp.exp_classification_contrastive import Exp_Classification_Contrastive
+from exp.exp_classification_siddhi import Exp_Classification_Siddhi
 import random
 import numpy as np
 
@@ -53,8 +54,8 @@ if __name__ == '__main__':
     # model define for baselines
     parser.add_argument('--top_k', type=int, default=5, help='for TimesBlock')
     parser.add_argument('--num_kernels', type=int, default=6, help='for Inception')
-    parser.add_argument('--enc_in', type=int, default=7, help='encoder input size')
-    parser.add_argument('--dec_in', type=int, default=7, help='decoder input size')
+    parser.add_argument('--enc_in', type=int, default=19, help='encoder input size')
+    parser.add_argument('--dec_in', type=int, default=19, help='decoder input size')
     parser.add_argument('--c_out', type=int, default=7, help='output size')
     parser.add_argument('--d_model', type=int, default=512, help='dimension of model')
     parser.add_argument('--n_heads', type=int, default=8, help='num of heads')
@@ -143,6 +144,8 @@ if __name__ == '__main__':
         Exp = Exp_Classification
     elif args.task_name == 'classification_contrastive':
         Exp = Exp_Classification_Contrastive
+    elif args.task_name == 'classification_siddhi':
+        Exp = Exp_Classification_Siddhi
     else:
         Exp = Exp_Long_Term_Forecast
 
