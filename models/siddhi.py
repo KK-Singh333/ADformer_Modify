@@ -28,7 +28,7 @@ class MatrixFactorizationLayer(nn.Module):
         Z_patch = X_patch @ self.W_patch # pxd @ dxl = pxl
         Z_channel = X_channel @ self.W_channel # c
         # ReLU activation
-        H_factor = F.relu(Z_patch @ Z_channel.mT)
+        H_factor = F.relu(Z_patch @ Z_channel.transpose(1, 2))
         return H_factor
 
 
@@ -39,15 +39,15 @@ class CrossAttentionLayer(nn.Module):
     
     def forward(self, X_patch, X_channel):
         # Patch to Channel
-        A_patch_to_channel = F.softmax(X_patch @ X_channel.mT / (self.latent_dim**0.5), dim=-1)
+        A_patch_to_channel = F.softmax(X_patch @ X_channel.transpose(1, 2) / (self.latent_dim**0.5), dim=-1)
         H_patch_to_channel = A_patch_to_channel @ X_channel
         
         # Channel to Patch
-        A_channel_to_patch = F.softmax(X_channel @ X_patch.mT / (self.latent_dim**0.5), dim=-1)
+        A_channel_to_patch = F.softmax(X_channel @ X_patch.transpose(1, 2) / (self.latent_dim**0.5), dim=-1)
         H_channel_to_patch = A_channel_to_patch @ X_patch
         
         # Hybrid representation
-        H_hybrid = H_patch_to_channel @ H_channel_to_patch.mT
+        H_hybrid = H_patch_to_channel @ H_channel_to_patch.transpose(1, 2)
         return H_hybrid
 
 
