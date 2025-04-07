@@ -7,13 +7,13 @@ from sklearn.model_selection import train_test_split
 # from implementation import UnifiedModel
 
 # Hyperparameters
-input_dim_p = 65
-input_dim_c=19
-latent_dim = 128
-batch_size_patch = 16
-batch_size_channel = 16
-epochs = 10
-learning_rate = 0.001
+#input_dim_p = 65
+#input_dim_c=19
+#latent_dim = 128
+#batch_size_patch = 16
+#batch_size_channel = 16
+#epochs = 10
+#learning_rate = 0.001
 
 
 
@@ -35,14 +35,15 @@ class MatrixFactorizationLayer(nn.Module):
 class CrossAttentionLayer(nn.Module):
     def __init__(self, input_dim_p,input_dim_c,latent_dim):
         super(CrossAttentionLayer, self).__init__()
+        self.latent_dim=latent_dim
     
     def forward(self, X_patch, X_channel):
         # Patch to Channel
-        A_patch_to_channel = F.softmax(X_patch @ X_channel.mT / (latent_dim**0.5), dim=-1)
+        A_patch_to_channel = F.softmax(X_patch @ X_channel.mT / (self.latent_dim**0.5), dim=-1)
         H_patch_to_channel = A_patch_to_channel @ X_channel
         
         # Channel to Patch
-        A_channel_to_patch = F.softmax(X_channel @ X_patch.mT / (latent_dim**0.5), dim=-1)
+        A_channel_to_patch = F.softmax(X_channel @ X_patch.mT / (self.latent_dim**0.5), dim=-1)
         H_channel_to_patch = A_channel_to_patch @ X_patch
         
         # Hybrid representation
