@@ -18,18 +18,19 @@ from sklearn.model_selection import train_test_split
 
 
 class MatrixFactorizationLayer(nn.Module):
-    def __init__(self, input_dim_p,input_dim_c, latent_dim):
+    def __init__(self, input_dim_p, input_dim_c, latent_dim):
         super(MatrixFactorizationLayer, self).__init__()
-        self.W_patch = nn.Parameter(torch.randn(latent_dim, latent_dim)) # dxl
-        self.W_channel = nn.Parameter(torch.randn(latent_dim, latent_dim)) # dxl
-    
+        self.W_patch = nn.Parameter(torch.empty(latent_dim, latent_dim))
+        self.W_channel = nn.Parameter(torch.empty(latent_dim, latent_dim))
+        nn.init.xavier_uniform_(self.W_patch)
+        nn.init.xavier_uniform_(self.W_channel)
+
     def forward(self, X_patch, X_channel):
-        # Project to shared latent spaces
-        Z_patch = X_patch @ self.W_patch # pxd @ dxl = pxl
-        Z_channel = X_channel @ self.W_channel # c
-        # ReLU activation
+        Z_patch = X_patch @ self.W_patch
+        Z_channel = X_channel @ self.W_channel
         H_factor = F.relu(Z_patch @ Z_channel.transpose(1, 2))
         return H_factor
+
 
 
 class CrossAttentionLayer(nn.Module):
@@ -52,32 +53,27 @@ class CrossAttentionLayer(nn.Module):
 
 
 class WeightedFusionLayer(nn.Module):
-    def __init__(self, input_dim_p,input_dim_c):
+    def __init__(self, input_dim_p, input_dim_c):
         super(WeightedFusionLayer, self).__init__()
-        self.W_alpha = nn.Parameter(torch.randn(input_dim_c, input_dim_c))
-        self.W_beta = nn.Parameter(torch.randn(input_dim_c, input_dim_c))
-        self.W_out = nn.Parameter(torch.randn(49, 19))  # Change to output 1 value
-        self.bias = nn.Parameter(torch.zeros(1))  # Bias term for binary output
-    
+        self.W_alpha = nn.Parameter(torch.empty(input_dim_c, input_dim_c))
+        self.W_beta = nn.Parameter(torch.empty(input_dim_c, input_dim_c))
+        self.W_out = nn.Parameter(torch.empty(49, 19))
+        self.bias = nn.Parameter(torch.zeros(1))
+
+        nn.init.xavier_uniform_(self.W_alpha)
+        nn.init.xavier_uniform_(self.W_beta)
+        nn.init.xavier_uniform_(self.W_out)
+
     def forward(self, H_factor, H_hybrid):
-        batch_size=H_factor.shape[0]
-
-
-       
-
         alpha = F.softmax(H_factor @ self.W_alpha, dim=-1)
         beta = F.softmax(H_hybrid @ self.W_beta, dim=-1)
-       
-        # Weighted fusion
-        H_final = torch.add(alpha*H_factor,beta*H_hybrid)
-        
-        # Output with a sigmoid activation for binary classification
+        H_final = alpha * H_factor + beta * H_hybrid
+
         print(f'H_final {H_final.shape}')
-        u=torch.sum(H_final * self.W_out,dim=(1,2)) + self.bias
+        u = torch.sum(H_final * self.W_out, dim=(1, 2)) + self.bias
         y = torch.sigmoid(u)
         print(y)
         return y
-
 
 class UnifiedModel(nn.Module):
     def __init__(self, input_dim_p,input_dim_c, latent_dim):
