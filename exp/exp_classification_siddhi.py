@@ -29,7 +29,7 @@ class Exp_Classification_Siddhi():
         self.latent_dim = 128
         self.batch_size_patch = 32
         self.batch_size_channel = 32
-        self.epochs = 10
+        self.epochs = 4000
         self.learning_rate = 0.001
         self.model = UnifiedModel(input_dim_p=self.input_dim_p,input_dim_c=self.input_dim_c, latent_dim=self.latent_dim)
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.learning_rate)
@@ -168,7 +168,6 @@ class Exp_Classification_Siddhi():
 
     def train(self,setting):
         model=self.model
-        print('hello',self.args)
         emb=Embeddings(self.args)
         criterion=self.criterion
         optimizer=self.optimizer
@@ -182,7 +181,6 @@ class Exp_Classification_Siddhi():
     
             for batch_idx, (X_batch, y_batch,padding) in enumerate(train_loader):
                 # Forward pass
-                print(f'Xbatch is {X_batch.shape}')
                 X_patch_batch,X_channel_batch=emb(X_batch)
                 X_patch_batch=X_patch_batch[0]
                 X_channel_batch=X_channel_batch[0]
