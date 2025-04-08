@@ -45,6 +45,86 @@ class Exp_Classification_Siddhi():
     def _load_vali_data(self):
         vali_data, vali_loader = self._get_data(flag="VAL")
         return vali_data,vali_loader
+    def test(self, setting, test=0):
+        vali_data, vali_loader = self._get_data(flag="VAL")
+        test_data, test_loader = self._get_data(flag="TEST")
+        if test:
+            print("loading model")
+            path = (
+                "./checkpoints/"
+                + self.args.task_name
+                + "/"
+                + self.args.model_id
+                + "/"
+                + self.args.model
+                + "/"
+                + setting
+                + "/"
+            )
+            model_path = path + "checkpoint.pth"
+            if not os.path.exists(model_path):
+                raise Exception("No model found at %s" % model_path)
+            if self.swa:
+                self.swa_model.load_state_dict(torch.load(model_path))
+            else:
+                self.model.load_state_dict(torch.load(model_path))
+
+        criterion = self._select_criterion()
+        vali_loss, val_metrics_dict = self.vali(vali_data, vali_loader, criterion)
+        test_loss, test_metrics_dict = self.vali(test_data, test_loader, criterion)
+
+        # result save
+        folder_path = (
+            "./results/"
+            + self.args.task_name
+            + "/"
+            + self.args.model_id
+            + "/"
+            + self.args.model
+            + "/"
+        )
+        if not os.path.exists(folder_path):
+            os.makedirs(folder_path)
+
+        print(
+            f"Validation results --- Loss: {vali_loss:.5f}, "
+            f"Accuracy: {val_metrics_dict['Accuracy']:.5f}, "
+            f"Precision: {val_metrics_dict['Precision']:.5f}, "
+            f"Recall: {val_metrics_dict['Recall']:.5f}, "
+            f"F1: {val_metrics_dict['F1']:.5f}, "
+            f"AUROC: {val_metrics_dict['AUROC']:.5f}, "
+            f"AUPRC: {val_metrics_dict['AUPRC']:.5f}\n"
+            f"Test results --- Loss: {test_loss:.5f}, "
+            f"Accuracy: {test_metrics_dict['Accuracy']:.5f}, "
+            f"Precision: {test_metrics_dict['Precision']:.5f}, "
+            f"Recall: {test_metrics_dict['Recall']:.5f}, "
+            f"F1: {test_metrics_dict['F1']:.5f}, "
+            f"AUROC: {test_metrics_dict['AUROC']:.5f}, "
+            f"AUPRC: {test_metrics_dict['AUPRC']:.5f}\n"
+        )
+        file_name = "result_classification.txt"
+        f = open(os.path.join(folder_path, file_name), "a")
+        f.write(setting + "  \n")
+        f.write(
+            f"Validation results --- Loss: {vali_loss:.5f}, "
+            f"Accuracy: {val_metrics_dict['Accuracy']:.5f}, "
+            f"Precision: {val_metrics_dict['Precision']:.5f}, "
+            f"Recall: {val_metrics_dict['Recall']:.5f}, "
+            f"F1: {val_metrics_dict['F1']:.5f}, "
+            f"AUROC: {val_metrics_dict['AUROC']:.5f}, "
+            f"AUPRC: {val_metrics_dict['AUPRC']:.5f}\n"
+            f"Test results --- Loss: {test_loss:.5f}, "
+            f"Accuracy: {test_metrics_dict['Accuracy']:.5f}, "
+            f"Precision: {test_metrics_dict['Precision']:.5f}, "
+            f"Recall: {test_metrics_dict['Recall']:.5f}, "
+            f"F1: {test_metrics_dict['F1']:.5f}, "
+            f"AUROC: {test_metrics_dict['AUROC']:.5f}, "
+            f"AUPRC: {test_metrics_dict['AUPRC']:.5f}\n"
+        )
+        f.write("\n")
+        f.write("\n")
+        f.close()
+        return
     def train(self,setting):
         model=self.model
         print('hello',self.args)
