@@ -22,6 +22,7 @@ from data_provider.data_factory import data_provider
 class Exp_Classification_Siddhi():
     def __init__(self,args):
         super(Exp_Classification_Siddhi,self).__init__()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.args=args
         self.input_dim_p = 65
         self.input_dim_c=19
@@ -69,7 +70,7 @@ class Exp_Classification_Siddhi():
             else:
                 self.model.load_state_dict(torch.load(model_path))
 
-        criterion = self._select_criterion()
+        criterion = self.criterion
         vali_loss, val_metrics_dict = self.vali(vali_data, vali_loader, criterion)
         test_loss, test_metrics_dict = self.vali(test_data, test_loader, criterion)
 
@@ -92,15 +93,13 @@ class Exp_Classification_Siddhi():
             f"Precision: {val_metrics_dict['Precision']:.5f}, "
             f"Recall: {val_metrics_dict['Recall']:.5f}, "
             f"F1: {val_metrics_dict['F1']:.5f}, "
-            f"AUROC: {val_metrics_dict['AUROC']:.5f}, "
-            f"AUPRC: {val_metrics_dict['AUPRC']:.5f}\n"
+            
             f"Test results --- Loss: {test_loss:.5f}, "
             f"Accuracy: {test_metrics_dict['Accuracy']:.5f}, "
             f"Precision: {test_metrics_dict['Precision']:.5f}, "
             f"Recall: {test_metrics_dict['Recall']:.5f}, "
             f"F1: {test_metrics_dict['F1']:.5f}, "
-            f"AUROC: {test_metrics_dict['AUROC']:.5f}, "
-            f"AUPRC: {test_metrics_dict['AUPRC']:.5f}\n"
+            
         )
         file_name = "result_classification.txt"
         f = open(os.path.join(folder_path, file_name), "a")
@@ -111,20 +110,62 @@ class Exp_Classification_Siddhi():
             f"Precision: {val_metrics_dict['Precision']:.5f}, "
             f"Recall: {val_metrics_dict['Recall']:.5f}, "
             f"F1: {val_metrics_dict['F1']:.5f}, "
-            f"AUROC: {val_metrics_dict['AUROC']:.5f}, "
-            f"AUPRC: {val_metrics_dict['AUPRC']:.5f}\n"
+            
             f"Test results --- Loss: {test_loss:.5f}, "
             f"Accuracy: {test_metrics_dict['Accuracy']:.5f}, "
             f"Precision: {test_metrics_dict['Precision']:.5f}, "
             f"Recall: {test_metrics_dict['Recall']:.5f}, "
             f"F1: {test_metrics_dict['F1']:.5f}, "
-            f"AUROC: {test_metrics_dict['AUROC']:.5f}, "
-            f"AUPRC: {test_metrics_dict['AUPRC']:.5f}\n"
+            
         )
         f.write("\n")
         f.write("\n")
         f.close()
         return
+    def vali(self, vali_data, vali_loader, criterion):
+        total_loss = []
+        emb = Embeddings(self.args)
+        preds = []
+        trues = []
+        self.model.eval()
+
+        with torch.no_grad():
+            for i, (batch_x, label, padding) in enumerate(vali_loader):
+                X_patch_batch, X_channel_batch = emb(batch_x)
+                X_patch_batch = X_patch_batch[0]
+                X_channel_batch = X_channel_batch[0]
+
+                self.optimizer.zero_grad()
+                outputs = self.model(X_patch_batch, X_channel_batch)
+                loss = criterion(outputs.squeeze().float(), label.squeeze().float())
+                total_loss.append(loss.item())
+                preds.append(outputs)
+                trues.append(label)
+
+        total_loss = sum(total_loss) / len(total_loss)
+
+        preds = torch.cat(preds, 0)
+        trues = torch.cat(trues, 0)
+
+        probs = torch.sigmoid(preds)  # For binary classification
+        predictions = (probs > 0.5).int()
+
+        # Detach and convert to numpy (only here, no .cpu())
+        predictions = predictions.numpy()
+        probs = probs.numpy()
+        trues = trues.flatten().numpy()
+
+        metrics_dict = {
+            "Accuracy": accuracy_score(trues, predictions),
+            "Precision": precision_score(trues, predictions, average="macro"),
+            "Recall": recall_score(trues, predictions, average="macro"),
+            "F1": f1_score(trues, predictions, average="macro"),
+        }
+
+        self.model.train()
+        return total_loss, metrics_dict
+
+
     def train(self,setting):
         model=self.model
         print('hello',self.args)
