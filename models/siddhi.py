@@ -68,11 +68,9 @@ class WeightedFusionLayer(nn.Module):
         alpha = F.softmax(H_factor @ self.W_alpha, dim=-1)
         beta = F.softmax(H_hybrid @ self.W_beta, dim=-1)
         H_final = alpha * H_factor + beta * H_hybrid
-
-        print(f'H_final {H_final.shape}')
         u = torch.sum(H_final * self.W_out, dim=(1, 2)) + self.bias
         y = torch.sigmoid(u)
-        print(y)
+       
         return y
 
 class UnifiedModel(nn.Module):
