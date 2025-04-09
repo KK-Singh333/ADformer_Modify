@@ -54,7 +54,6 @@ class Embeddings(nn.Module):
 
     def forward(self, x_enc):
         # Embedding
-        print(f'My shape is {x_enc.shape}')
         enc_out_t, enc_out_c = self.enc_embedding(x_enc)
        
         # if enc_out_t is None:
