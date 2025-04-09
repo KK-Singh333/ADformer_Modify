@@ -308,10 +308,10 @@ class TokenChannelEmbedding(nn.Module):
         )
 
         self.learnable_embeddings_t = nn.ParameterList(
-            [nn.Parameter(torch.randn(1, d_model)) for _ in self.patch_len_list]
+            [nn.Parameter(nn.init.xavier_uniform_(torch.empty(1,d_model))) for _ in self.patch_len_list]
         )
         self.learnable_embeddings_c = nn.ParameterList(
-            [nn.Parameter(torch.randn(1, d_model)) for _ in self.up_dim_list]
+            [nn.Parameter(nn.init.xavier_uniform_(torch.empty(1,d_model))) for _ in self.up_dim_list]
         )
 
     def forward(self, x):  # (batch_size, seq_len, enc_in)
