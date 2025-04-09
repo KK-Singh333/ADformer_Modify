@@ -25,8 +25,8 @@ class Exp_Classification_Siddhi():
         self.latent_dim = 128
         self.batch_size_patch = 32
         self.batch_size_channel = 32
-        self.epochs = 500
-        self.learning_rate = 0.0001
+        self.epochs = 130
+        self.learning_rate = 0.00205
         self.emb=Embeddings(self.args)
         self.model = UnifiedModel(input_dim_p=self.input_dim_p, input_dim_c=self.input_dim_c, latent_dim=self.latent_dim).to(self.device)
         self.optimizer = optim.Adam(
