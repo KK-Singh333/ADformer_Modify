@@ -16,7 +16,14 @@ if __name__ == '__main__':
     random.seed(fix_seed)
     torch.manual_seed(fix_seed)
     np.random.seed(fix_seed)"""
-
+    seed=42
+    random.seed(seed)                           # Python random
+    np.random.seed(seed)                        # NumPy
+    torch.manual_seed(seed)                     # PyTorch CPU
+    torch.cuda.manual_seed(seed)                # PyTorch GPU
+    torch.cuda.manual_seed_all(seed)            # All GPUs
+    torch.backends.cudnn.deterministic = True   # Force deterministic algo
+    torch.backends.cudnn.benchmark = False 
     parser = argparse.ArgumentParser(description='TimesNet')
 
     # basic config
