@@ -9,12 +9,12 @@ import os
 import time
 import warnings
 import numpy as np
+import matplotlib.pyplot as plt
 import random
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, average_precision_score
 from layers.emb_siddhi import Embeddings
 from models.siddhi import MatrixFactorizationLayer, CrossAttentionLayer, WeightedFusionLayer, UnifiedModel
 from data_provider.data_factory import data_provider
-
 class Exp_Classification_Siddhi():
     def __init__(self, args):
         super(Exp_Classification_Siddhi, self).__init__()
@@ -25,13 +25,14 @@ class Exp_Classification_Siddhi():
         self.latent_dim = 128
         self.batch_size_patch = 32
         self.batch_size_channel = 32
-        self.epochs = 130
-        self.learning_rate = 0.00205
+        self.epochs = 719
+        self.learning_rate = 0.0013
         self.emb=Embeddings(self.args)
         self.model = UnifiedModel(input_dim_p=self.input_dim_p, input_dim_c=self.input_dim_c, latent_dim=self.latent_dim).to(self.device)
         self.optimizer = optim.Adam(
                         list(self.model.parameters()) + list(self.emb.parameters()),
-                        lr=self.learning_rate
+                        lr=self.learning_rate,
+                        weight_decay=0.10011
                     )
         self.criterion = nn.BCELoss()
         
@@ -160,6 +161,12 @@ class Exp_Classification_Siddhi():
         return total_loss, metrics_dict
 
     def train(self, setting):
+        fig,ax=plt.subplots(2,1,figsize=(15,15))
+        train_list=[]
+        vali_list=[]
+        train_loss_list=[]
+        vali_loss_list=[]
+        f=1
         model = self.model
         emb = self.emb
         # for name, param in emb.named_parameters():
@@ -212,7 +219,16 @@ class Exp_Classification_Siddhi():
                     predicted = (output > 0.5).float()
                     correct_val += (predicted.squeeze() == y_batch.squeeze()).sum().item()
                     total_val += y_batch.size(0)
-
+            if (100 * correct_val/total_val) > 97 and val_loss/len(vali_loader) < 0.07 and epoch > 500:
+              for param_group in optimizer.param_groups:
+                  param_group['lr'] = 0.00001
+              if f:
+                print("#################Learning rate changed to 0.0001")
+                f=0
+            train_list.append(100 * correct/total)
+            vali_list.append(100 * correct_val/total_val)
+            train_loss_list.append(train_loss/len(train_loader))
+            vali_loss_list.append(val_loss/len(vali_loader))
             print(f'Epoch {epoch+1}/{self.epochs}')
             print(f'Training Loss: {train_loss/len(train_loader):.4f}, Training Accuracy: {100 * correct/total:.2f}%')
             print(f'Validation Loss: {val_loss/len(vali_loader):.4f}, Validation Accuracy: {100 * correct_val/total_val:.2f}%')
@@ -244,4 +260,14 @@ class Exp_Classification_Siddhi():
         model_dir = os.path.join('./checkpoints', self.args.task_name, self.args.model_id, self.args.model, setting)
         os.makedirs(model_dir, exist_ok=True)
         torch.save(self.model.state_dict(), os.path.join(model_dir, "checkpoint.pth"))
+        ax[0].plot(np.arange(1, self.epochs + 1), train_list, color='yellow', label='Train')
+        ax[0].plot(np.arange(1, self.epochs + 1), vali_list, color='green', label='Validation')
+        ax[0].set_title('Accuracy')
+        ax[0].legend()
+        ax[1].set_title('Loss')
+        ax[1].plot(np.arange(1, self.epochs + 1), train_loss_list, color='yellow', label='Train')
+        ax[1].plot(np.arange(1, self.epochs + 1), vali_loss_list, color='green', label='Validation')
+        ax[1].legend()
+        plt.tight_layout()
+        plt.savefig("training_results.png")
 
