@@ -37,14 +37,27 @@ class CrossAttentionLayer(nn.Module):
     def __init__(self, input_dim_p,input_dim_c,latent_dim):
         super(CrossAttentionLayer, self).__init__()
         self.latent_dim=latent_dim
-    
+    def top_k_sparse_mask(self,scores,k):
+      mean = scores.mean(dim=-1, keepdim=True)
+      std = scores.std(dim=-1, keepdim=True)
+      threshold = mean + std/8  # You can tune this rule
+
+      mask = torch.where(scores >= threshold, torch.tensor(0.0, device=scores.device), torch.tensor(float('-inf'), device=scores.device))
+      # print(mask)
+      return mask
     def forward(self, X_patch, X_channel):
         # Patch to Channel
-        A_patch_to_channel = F.softmax(X_patch @ X_channel.transpose(1, 2) / (self.latent_dim**0.5), dim=-1)
+        A_patch_to_channel_attention_scores=X_patch @ X_channel.transpose(1, 2) / (self.latent_dim**0.5)
+        A_patch_to_channel_attention_mask=self.top_k_sparse_mask(A_patch_to_channel_attention_scores,k=10)
+        A_patch_to_channel_attention_scores+=A_patch_to_channel_attention_mask
+        A_patch_to_channel = F.softmax(A_patch_to_channel_attention_scores, dim=-1)
         H_patch_to_channel = A_patch_to_channel @ X_channel
         
         # Channel to Patch
-        A_channel_to_patch = F.softmax(X_channel @ X_patch.transpose(1, 2) / (self.latent_dim**0.5), dim=-1)
+        A_channel_to_patch_attention_scores=X_channel @ X_patch.transpose(1, 2) / (self.latent_dim**0.5)
+        A_channel_to_patch_attention_mask=self.top_k_sparse_mask(A_channel_to_patch_attention_scores,k=10)
+        A_channel_to_patch_attention_scores+=A_channel_to_patch_attention_mask
+        A_channel_to_patch = F.softmax(A_channel_to_patch_attention_scores, dim=-1)
         H_channel_to_patch = A_channel_to_patch @ X_patch
         
         # Hybrid representation
